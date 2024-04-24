@@ -1,14 +1,12 @@
-﻿#include <vector>
 #include <iostream>
 #include <limits>
+#include <vector>
 #include <cstdlib>
 #include <ctime>
 #include <chrono>
 #include <iomanip>
-
 #include <fstream>
-
-
+#include <string>
 using namespace std;
 
 struct Target {
@@ -103,6 +101,7 @@ public:
 
 struct AdjacencyMatrix {
     int** adjacencyMatrix;
+    string* vertexLabels;
     int V;
 
     AdjacencyMatrix(int numVertices) : V(numVertices) {
@@ -113,6 +112,7 @@ struct AdjacencyMatrix {
                 adjacencyMatrix[i][j] = -1;
             }
         }
+        vertexLabels = new string[V];
     }
 
     ~AdjacencyMatrix() {
@@ -122,9 +122,32 @@ struct AdjacencyMatrix {
         delete[] adjacencyMatrix;
     }
 
+    void setVertexLabel(int vertex, string label) {
+		vertexLabels[vertex] = label;
+	}
+
+    string* getVertexLabels() {
+        string* labels = new string[V];
+        for (int i = 0; i < V; i++) {
+			labels[i] = vertexLabels[i];
+		}
+        return labels;
+    }
+
     void addEdge(int u, int v, int w) {
         adjacencyMatrix[u][v] = w;
     }
+
+    void displayEdges(int vertex) {
+        for (int i = 0; i < V; i++) {
+            if (!vertexLabels[vertex].empty() && adjacencyMatrix[vertex][i] != -1) {
+                cout << "Edge: " << vertexLabels[vertex] << " - " << vertexLabels[i] << " Weight: " << adjacencyMatrix[vertex][i] << endl;
+            }
+            else if (vertexLabels[vertex].empty() && adjacencyMatrix[vertex][i] != -1) {
+				cout << "Edge: " << vertex << " - " << i << " Weight: " << adjacencyMatrix[vertex][i] << endl;
+			}
+		}
+	}
 
     void display() {
         for (int i = 0; i < V; ++i) {
@@ -188,15 +211,13 @@ struct AdjacencyMatrix {
                     } // Dodajemy lub aktualizujemy wierzchołek w kolejce
                 }
             }
-
-            delete current; // Zwolnienie pamięci zaalokowanej dla wierzchołka
+            delete current;
         }
 
         auto end = chrono::high_resolution_clock::now();
-        return chrono::duration<double, milli>(end - start).count();
 
         // Wypisujemy obliczone odległości
-        /*cout << "Distances from source vertex " << source << endl;
+       /* cout << "Distances from source vertex " << source << endl;
         for (int i = 0; i < V; ++i) {
             if (distance[i] == numeric_limits<int>::max()) {
                 cout << "Vertex " << i << ": Unreachable" << endl;
@@ -207,11 +228,14 @@ struct AdjacencyMatrix {
         }*/
 
         delete[] distance;
-        delete[] visited;
+        delete[] visited; 
+        return chrono::duration<double, milli>(end - start).count();
     }
 };
+
 struct AdjacencyList {
     pair<int, int>** adjacencyList;
+    string* vertexLabels;
     int V;
 
     AdjacencyList(int numVertices) : V(numVertices) {
@@ -222,6 +246,7 @@ struct AdjacencyList {
                 adjacencyList[i][j] = make_pair(-1, -1);
             }
         }
+        vertexLabels = new string[V];
     }
 
     ~AdjacencyList() {
@@ -231,17 +256,48 @@ struct AdjacencyList {
         delete[] adjacencyList;
     }
 
+    void setVertexLabel(int vertex, string label) {
+        vertexLabels[vertex] = label;
+    }
+
+    string* getVertexLabel() {
+		string* labels = new string[V];
+        for (int i = 0; i < V; i++) {
+			labels[i] = vertexLabels[i];
+		}
+		return labels;
+	}
+
     void addEdge(int u, int v, int w) {
         adjacencyList[u][v] = make_pair(v, w);
         adjacencyList[v][u] = make_pair(u, w);
     }
+    
+    void displayEdges(int vertex) {
+        for (int i = 0; i < V; i++) {
+            if (!vertexLabels[vertex].empty() && adjacencyList[vertex][i].first != -1) {
+                cout << "Edge: " << vertexLabels[vertex] << " - " << vertexLabels[i] << " Weight: " << adjacencyList[vertex][i].second << endl;
+            }
+            else if (vertexLabels[vertex].empty() && adjacencyList[vertex][i].first != -1) {
+                cout << "Edge: " << vertex << " - " << adjacencyList[vertex][i].first << " Weight: " << adjacencyList[vertex][i].second << endl;
+            }
+		}
+	}
 
     void display() {
         for (int i = 0; i < V; i++) {
             cout << "Vertex " << i << ": ";
             for (int j = 0; j < V; j++) {
                 const auto& neighbor = adjacencyList[i][j];
-                cout << "(" << neighbor.first << ", " << neighbor.second << ") ";
+                if (neighbor.first != -1 && neighbor.second == -1) {
+                    cout << "(" << neighbor.first << ", INF) ";
+                }
+                else if (neighbor.first == -1) {
+					cout << "INF ";
+                }
+                else {
+                    cout << "(" << neighbor.first << ", " << neighbor.second << ") ";
+                }
             }
             cout << endl;
         }
@@ -256,28 +312,24 @@ struct AdjacencyList {
             return 0.0;
         }
 
-        int* distance = new int[V]; // Tablica wag/odleglosci dla wierzcholkow
-        bool* visited = new bool[V]; // Tablica odwiedzonych wierzchołków
+        int* distance = new int[V];
+        bool* visited = new bool[V];
 
         for (int i = 0; i < V; ++i) {
             distance[i] = numeric_limits<int>::max();
             visited[i] = false;
         }
-        distance[source] = 0; // Odległość od źródła do źródła wynosi 0
-
-        pq.build(new Target(source, 0)); // Umieszczamy źródło w kolejce
-
-        // Algorytm Dijkstry
+        distance[source] = 0; 
+        pq.build(new Target(source, 0)); 
         while (!pq.isEmpty()) {
-            Target* current = pq.peek(); // Wybieramy wierzchołek o najmniejszej odległości
+            Target* current = pq.peek();
             int u = current->vertex;
-            pq.deleteMin(); // Usuwamy wybrany wierzchołek z kolejki
+            pq.deleteMin();
 
-            if (visited[u]) continue; // Jeśli wierzchołek był już odwiedzony, przechodzimy do następnego
+            if (visited[u]) continue;
 
-            visited[u] = true; // Oznaczamy wierzchołek jako odwiedzony
+            visited[u] = true;
 
-            // Aktualizujemy odległości dla sąsiadów wybranego wierzchołka
             for (int i = 0; i < V; i++) {
                 const auto& neighbor = adjacencyList[u][i];
                 int v = neighbor.first;
@@ -293,23 +345,18 @@ struct AdjacencyList {
                     }
 
                     if (index != -1) {
-                        pq.decreaseKey(index, distance[v]); // Aktualizujemy odległość dla v
-                        // Dlaczego? Bo waga krawedzi była wieksza 
-                        // niz dodanie do siebie wagi od wierzcholka zrodlowego
+                        pq.decreaseKey(index, distance[v]); 
                     }
                     else {
-                        pq.build(new Target(v, distance[v])); // Dodajemy v do kolejki
-                        // Dodajesz nowe v do kolejki o tym dystansie 
-                        // bo nie znalazles go w kolejce
+                        pq.build(new Target(v, distance[v]));
                     }
                 }
             }
-            delete current; // Zwolnienie pamięci zaalokowanej dla wierzchołka
+            delete current;
         }
 
 
         auto end = chrono::high_resolution_clock::now();
-        return chrono::duration<double, milli>(end - start).count();
 
         // Wypisujemy obliczone odległości
         /*cout << "Distances from source vertex " << source << endl;
@@ -324,6 +371,7 @@ struct AdjacencyList {
 
         delete[] distance;
         delete[] visited;
+        return chrono::duration<double, milli>(end - start).count();
     }
 };
 
@@ -334,6 +382,60 @@ private:
     AdjacencyMatrix adjacencyMatrix;
 public:
     Graph(int vertices) : V(vertices), adjacencyList(vertices), adjacencyMatrix(vertices) {}
+
+    // MATRIX
+    void displayMatrix() {
+        adjacencyMatrix.display();
+    }
+
+    void displayEdgesMatrix(int vertex) {
+		adjacencyMatrix.displayEdges(vertex);
+	}
+
+    double dijkstraMatrix(int source, ChangeablePriorityQueue& cpq) {
+        return adjacencyMatrix.dijkstra(source, cpq);
+    }
+
+    // LIST
+    void displayList() {
+        adjacencyList.display();
+    }
+
+    void displayEdgesList(int vertex) {
+        adjacencyList.displayEdges(vertex);
+    }
+
+    double dijkstraList(int source, ChangeablePriorityQueue& cpq) {
+        return adjacencyList.dijkstra(source, cpq);
+    }
+
+    // BOTH
+    void display() {
+        cout << "Matrix\n";
+        displayMatrix();
+        cout << "List\n";
+		displayList();
+    }
+
+    void displayEdges(int vertex) {
+        cout << "Edges from vertex: " << vertex << endl;
+        cout << "Matrix\n";
+		displayEdgesMatrix(vertex);
+        cout << "List\n";
+		displayEdgesList(vertex);
+	}
+
+    double* dijkstra(int source, ChangeablePriorityQueue& cpq) {
+        double* distances = new double[2];
+		distances[0] = adjacencyMatrix.dijkstra(source, cpq);
+		distances[1] = adjacencyList.dijkstra(source, cpq);
+        return distances;
+	}
+
+    void setVertexLabel(int vertex, string label) {
+        adjacencyMatrix.setVertexLabel(vertex, label);
+        adjacencyList.setVertexLabel(vertex, label);
+    }
 
     void addRandomEdges(int density, int maxWeight) {
         srand(time(0));
@@ -352,74 +454,33 @@ public:
         }
     }
 
-    void displayMatrix() {
-        adjacencyMatrix.display();
-    }
-
-    void displayList() {
-        adjacencyList.display();
-    }
-
-    double dijkstraMatrix(int source, ChangeablePriorityQueue& cpq) {
-        return adjacencyMatrix.dijkstra(source, cpq);
-    }
-
-    double dijkstraList(int source, ChangeablePriorityQueue& cpq) {
-        return adjacencyList.dijkstra(source, cpq);
-    }
-
 };
 
 int main() {
-    int numInstances = 1; // Zmiana liczby instancji na 100
-    int maxWeight = 10; // maksymalna waga krawedzi
-    int vMax = 100; // maksymalna ilosc wierzcholkow
+    int numInstances = 1;
+    int maxWeight = 10;
 
-    vector<int> numVerticesList = { 5, 10, 15, 20, 25 };
-    vector<int> densities = { 25, 50, 75, 100 };
-    double timeTakenM{ 0 }, timeTakenL{ 0 };
+    for (int i = 0; i < numInstances; i++) {
+		Graph g(5);
+		g.setVertexLabel(0, "A");
+		g.setVertexLabel(1, "B");
+		g.setVertexLabel(2, "C");
+		g.setVertexLabel(3, "D");
+		g.setVertexLabel(4, "E");
 
-    for (int numVertices : numVerticesList) {
-        double timeTakenAvgM{ 0 }, timeTakenAvgL{ 0 };
-        for (int density : densities) {
-            cout << "Adjacency Graph - Num Vertices: " << numVertices << ", Density: " << density << endl;
-            for (int i = 0; i < numInstances; i++) {
-                Graph g(numVertices);
-                g.addRandomEdges(density, maxWeight);
-                g.displayMatrix();
-                g.displayList(); 
+		g.addRandomEdges(75, maxWeight);
+		g.display();
 
-                ChangeablePriorityQueue cpq;
+		ChangeablePriorityQueue cpq;
+        g.displayEdges(0);
+        double* time = g.dijkstra(0, cpq);
+        cout << "Dijkstra - Source: 0\n";
+        cout << "Matrix: " << *(time) << endl;
+		cout << "List: " << *(time+1) << endl;
+		cout << endl;
+        delete[] time;
+	}
 
-                //timeTakenM = g.dijkstraMatrix(0, cpq);
-                //timeTakenL = g.dijkstraList(0, cpq);
-
-                //// Wyswietlenie tego co zostaje zapisane do csv
-                //// Wyswietlenie czasow dla KAZDEGO pomiaru 
-                //// dla jednego wierzcholka zrodlowego
-                //cout << "Matrix: " << timeTakenM << endl;
-                //cout << "List: " << timeTakenL << endl;
-                //cout << endl;
-
-                // Wyswietlenie czasow dla KAZDEGO pomiaru 
-                // dla wszystkich mozliwych wierzcholkow zrodlowych
-                for (int j = 0; j < numVertices; j++) {
-                    timeTakenM = g.dijkstraMatrix(j, cpq);
-                    timeTakenL = g.dijkstraList(j, cpq);
-                    cout << "Dijkstra - Source: " << j << " Vertices: " << numVertices << " Density: " << density << endl;
-                    cout << "Matrix: " << timeTakenM << endl;
-                    cout << "List: " << timeTakenL << endl;
-                    cout << endl;
-                }
-
-                // czasy usrednione
-                timeTakenAvgM += timeTakenM;
-                timeTakenAvgL += timeTakenL;
-            }
-        }
-        // Wyswietlenie usrednionych wartosci pod sprawozdanie
-        cout << "Average time taken\nMatrix: " << fixed << setprecision(4) << timeTakenAvgM / numInstances << " ms\nList: " << timeTakenAvgL / numInstances << " ms" << endl;
-    }
     getchar();
     return 0;
 }
